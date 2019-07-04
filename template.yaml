@@ -41,26 +41,6 @@ Resources:
       Handler: index.iterator
       Runtime: nodejs8.10
 
-##https://stackoverflow.com/questions/48985893/not-able-to-add-policies-in-sam-template
-#  SomeFunction:
-#    Type: AWS::Serverless::Function
-#    Properties:
-#      Handler: index.handler
-#      Runtime: nodejs8.10
-#      Policies:
-#        - Statement:
-#            - Sid: SSMDescribeParametersPolicy
-#              Effect: Allow
-#              Action:
-#                - ssm:DescribeParameters
-#              Resource: '*'
-#            - Sid: SSMGetParameterPolicy
-#              Effect: Allow
-#              Action:
-#                - ssm:GetParameters
-#                - ssm:GetParameter
-#              Resource: '*'
-
   SendSMSFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -69,6 +49,19 @@ Resources:
       CodeUri: sendSMS/           #point to the code in the project folder structure
       Handler: index.sendSMS
       Runtime: nodejs8.10
+      Policies:
+        - Statement:
+          - Sid: BlaBla
+            Effect: Allow
+            Action:
+              - ssm:DescribeParameters
+            Resource: '*'
+          - Sid: SSMGetParameterPolicy
+            Effect: Allow
+            Action:
+              - ssm:GetParameters
+              - ssm:GetParameter
+            Resource: '*'
 
   StatesExecutionRole:
     Type: "AWS::IAM::Role"

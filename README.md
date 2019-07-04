@@ -150,15 +150,45 @@ Next, you can use the following resources to know more about beyond hello world 
 ## SAM templates, lambda functions and permissions
 https://github.com/awslabs/serverless-application-model/blob/master/docs/policy_templates.rst
 
-```
-https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#properties
+1. The way I got policies to work was first to create a `LambdaExecutionRole`.
+    
+    ```
+      LambdaExecutionRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+          ManagedPolicyArns:
+            - "arn:aws:iam::aws:policy/AmazonSNSFullAccess"   <-------- using a managed policy here
+          AssumeRolePolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Principal:
+                  Service: lambda.amazonaws.com
+                Action: "sts:AssumeRole"```
+    ```
 
-Role	    string	ARN of an IAM role to use as this function's execution role. If omitted, a default role is created for this function.
-Policies	string | List of string | IAM policy document object | List of IAM policy document object | List of SAM Policy Templates	Names of AWS managed IAM policies or IAM policy documents or SAM Policy Templates that this function needs, which should be appended to the default role for this function. If the Role property is set, this property has no meaning.
-```
-
+2. Then in the definition for the lambda function I referenced 
+    ```
+      SendSMSFunction:
+        Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+        Properties:
+          Role: !GetAtt [ LambdaExecutionRole, Arn ]               <------ here I'm using the role
+          CodeUri: sendSMS/           
+          Handler: index.sendSMS
+          Runtime: nodejs8.10
+    ```
 
 ### Policies:
+**Reading the documentation below I thouhgt it should be done in a different way than describe above.**
+
+
+https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#properties
+
+```
+Role        string	ARN of an IAM role to use as this function's execution role. If omitted, a default role is created for this function.
+Policies    string | List of string | IAM policy document object | List of IAM policy document object | List of SAM Policy Templates	Names of AWS managed IAM policies or IAM policy documents or SAM Policy Templates that this function needs, which should be appended to the default role for this function. If the Role property is set, this property has no meaning.
+```
+
 
 This property grants permission to your Lambda function to publish messages to the HelloWorldTopic SNS topic.
 
@@ -170,3 +200,27 @@ In our template we use the SNSPublishMessagePolicy policy template which matches
 
 Note that we use another CloudFormation intrinsic function GetAtt to retrieve the name of the HelloWorldTopic SNS topic. This is necessary, because this name is automatically generated and not known at the time of the initial deployment.
 
+**I found one exampel like this:** 
+```
+##https://stackoverflow.com/questions/48985893/not-able-to-add-policies-in-sam-template
+#  SomeFunction:
+#    Type: AWS::Serverless::Function
+#    Properties:
+#      Handler: index.handler
+#      Runtime: nodejs8.10
+#      Policies:
+#        - Statement:
+#            - Sid: SSMDescribeParametersPolicy
+#              Effect: Allow
+#              Action:
+#                - ssm:DescribeParameters
+#              Resource: '*'
+#            - Sid: SSMGetParameterPolicy
+#              Effect: Allow
+#              Action:
+#                - ssm:GetParameters
+#                - ssm:GetParameter
+#              Resource: '*'
+```
+
+But I could not figure out how the statements should be creted. Also tried that exact statement but got an error 
