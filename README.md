@@ -1,5 +1,8 @@
 # AWS Serverless Application
 
+article about SAM: https://alexharv074.github.io/2019/03/02/introduction-to-sam-part-ii-template-and-architecture.html#the-default-role
+
+
 This is a sample template for AWS Serverless Application - Below is a brief explanation of what we have generated for you:
 
 ```bash
@@ -178,6 +181,25 @@ https://github.com/awslabs/serverless-application-model/blob/master/docs/policy_
           Runtime: nodejs8.10
     ```
 
+Another way I got it working:
+
+1. This time I managed to write an inline policy with the permissions. A drawback with inline policy is that when you look in the Aws Console then you don't see what the permissions are.
+
+```SendSMSFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: sendSMS/           #point to the code in the project folder structure
+      Handler: index.sendSMS
+      Runtime: nodejs8.10
+      Policies:
+        - Statement:
+          - Sid: AmazonSNSFullAccess   # this is just a name you select on your own
+            Effect: Allow
+            Action:
+              - sns:*
+            Resource: '*' 
+```
+
 ### Policies:
 **Reading the documentation below I thouhgt it should be done in a different way than describe above.**
 
@@ -224,3 +246,32 @@ Note that we use another CloudFormation intrinsic function GetAtt to retrieve th
 ```
 
 But I could not figure out how the statements should be creted. Also tried that exact statement but got an error 
+
+
+Another example
+
+```
+https://github.com/awslabs/serverless-application-model/issues/224
+
+EDIT: After trial and error, I found out that only the statement part from iam-managedPolicy is needed
+https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-iam-managedpolicy.html
+
+Resources:
+  SomeFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: SomeFunction
+      MemorySize: 128
+      Handler: index.handler
+      Runtime: nodejs6.10
+      Timeout: 20
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - 'cloudformation:DescribeStacks'
+                - 'cloudformation:DescribeStackResources'
+                - 'cloudformation:CancelUpdateStack'
+                - 'iam:PassRole'
+              Resource:
+                - '*'```

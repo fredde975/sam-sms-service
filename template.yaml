@@ -12,23 +12,24 @@ Globals:
 
 
 Resources:
-  LambdaExecutionRole:
-    Type: "AWS::IAM::Role"
-    Properties:
-      ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/AmazonSNSFullAccess"
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: "sts:AssumeRole"
+# A LambdaExecutionRole can be used when you need to set permissions for your lambdas. The lambda functions get a default rolt created for them which lets them log to cloudwatch.
+#
+#  LambdaExecutionRole:
+#    Type: "AWS::IAM::Role"
+#    Properties:
+#      ManagedPolicyArns:
+#        - "arn:aws:iam::aws:policy/AmazonSNSFullAccess"      <------ can use a managed policy here
+#      AssumeRolePolicyDocument:
+#        Version: "2012-10-17"
+#        Statement:
+#          - Effect: Allow
+#            Principal:
+#              Service: lambda.amazonaws.com
+#            Action: "sts:AssumeRole"
 
   CalculateDatesFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      Role: !GetAtt [ LambdaExecutionRole, Arn ]
       CodeUri: calculateDates/           #point to the code in the project folder structure
       Handler: index.calculateDates
       Runtime: nodejs8.10
@@ -36,7 +37,6 @@ Resources:
   IteratorFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      Role: !GetAtt [ LambdaExecutionRole, Arn ]
       CodeUri: iterator/           #point to the code in the project folder structure
       Handler: index.iterator
       Runtime: nodejs8.10
@@ -44,23 +44,17 @@ Resources:
   SendSMSFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      Role: !GetAtt [ LambdaExecutionRole, Arn ]
+      #Role: !GetAtt [ LambdaExecutionRole, Arn ]
       #Role: "arn:aws:iam::aws:policy/AmazonSNSFullAccess"
       CodeUri: sendSMS/           #point to the code in the project folder structure
       Handler: index.sendSMS
       Runtime: nodejs8.10
       Policies:
         - Statement:
-          - Sid: BlaBla
+          - Sid: AmazonSNSFullAccess   # this is just a name you select on your own
             Effect: Allow
             Action:
-              - ssm:DescribeParameters
-            Resource: '*'
-          - Sid: SSMGetParameterPolicy
-            Effect: Allow
-            Action:
-              - ssm:GetParameters
-              - ssm:GetParameter
+              - sns:*
             Resource: '*'
 
   StatesExecutionRole:
@@ -164,22 +158,22 @@ Outputs:
     Description: "CalculateDatesFunction ARN"
     Value: !GetAtt CalculateDatesFunction.Arn
 
-#  CalculateDatesFunctionIamRole:
-#    Description: "Implicit IAM Role created for CalculateDatesFunction"
-#    Value: !GetAtt CalculateDatesFunction.Arn
+  CalculateDatesFunctionIamRole:
+    Description: "Implicit IAM Role created for CalculateDatesFunction"
+    Value: !GetAtt CalculateDatesFunctionRole.Arn
 
   IteratorFunction:
     Description: "IteratorFunction ARN"
     Value: !GetAtt IteratorFunction.Arn
 
-#  IteratorFunctionIamRole:
-#    Description: "Implicit IAM Role created for IteratorFunction"
-#    Value: !GetAtt IteratorFunction.Arn
+  IteratorFunctionIamRole:
+    Description: "Implicit IAM Role created for IteratorFunction"
+    Value: !GetAtt IteratorFunctionRole.Arn
 
   SendSMSFunction:
     Description: "SendSMSFunction ARN"
     Value: !GetAtt SendSMSFunction.Arn
 
-#  SendSMSFunctionIamRole:
-#    Description: "Implicit IAM Role created for SendSMSFunction"
-#    Value: !GetAtt SendSMSFunction.Arn
+  SendSMSFunctionIamRole:
+    Description: "Implicit IAM Role created for SendSMSFunction"
+    Value: !GetAtt SendSMSFunctionRole.Arn
