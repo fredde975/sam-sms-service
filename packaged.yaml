@@ -14,20 +14,8 @@ Outputs:
       Fn::GetAtt:
       - CalculateDatesFunction
       - Arn
-  CalculateDatesFunctionIamRole:
-    Description: Implicit IAM Role created for CalculateDatesFunction
-    Value:
-      Fn::GetAtt:
-      - CalculateDatesFunction
-      - Arn
   IteratorFunction:
     Description: IteratorFunction ARN
-    Value:
-      Fn::GetAtt:
-      - IteratorFunction
-      - Arn
-  IteratorFunctionIamRole:
-    Description: Implicit IAM Role created for IteratorFunction
     Value:
       Fn::GetAtt:
       - IteratorFunction
@@ -38,25 +26,39 @@ Outputs:
       Fn::GetAtt:
       - SendSMSFunction
       - Arn
-  SendSMSFunctionIamRole:
-    Description: Implicit IAM Role created for SendSMSFunction
-    Value:
-      Fn::GetAtt:
-      - SendSMSFunction
-      - Arn
 Resources:
   CalculateDatesFunction:
     Properties:
-      CodeUri: s3://fredrik-sms-service/6a02127a645e7c6f453452b58426b307
+      CodeUri: s3://fredrik-sms-service/37eb383fe7000fc96af2c852881e2e1b
       Handler: index.calculateDates
+      Role:
+        Fn::GetAtt:
+        - LambdaExecutionRole
+        - Arn
       Runtime: nodejs8.10
     Type: AWS::Serverless::Function
   IteratorFunction:
     Properties:
-      CodeUri: s3://fredrik-sms-service/b7eed1e9449f1b31c69c717864e49166
+      CodeUri: s3://fredrik-sms-service/dce8374cd46a1b538ab5021adee132cd
       Handler: index.iterator
+      Role:
+        Fn::GetAtt:
+        - LambdaExecutionRole
+        - Arn
       Runtime: nodejs8.10
     Type: AWS::Serverless::Function
+  LambdaExecutionRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action: sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+        Version: '2012-10-17'
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonSNSFullAccess
+    Type: AWS::IAM::Role
   SMSStateMachine:
     Properties:
       DefinitionString:
@@ -99,8 +101,12 @@ Resources:
     Type: AWS::StepFunctions::StateMachine
   SendSMSFunction:
     Properties:
-      CodeUri: s3://fredrik-sms-service/3c7b3409d500332df3bf2217904adbcf
+      CodeUri: s3://fredrik-sms-service/8e1201512ffcf6abaf9f8e43e21c14ff
       Handler: index.sendSMS
+      Role:
+        Fn::GetAtt:
+        - LambdaExecutionRole
+        - Arn
       Runtime: nodejs8.10
     Type: AWS::Serverless::Function
   StatesExecutionRole:

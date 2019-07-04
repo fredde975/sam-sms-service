@@ -145,3 +145,28 @@ Here are a few ideas that you can use to get more acquainted as to how this over
 Next, you can use the following resources to know more about beyond hello world samples and how others structure their Serverless applications:
 
 * [AWS Serverless Application Repository](https://aws.amazon.com/serverless/serverlessrepo/)
+
+
+## SAM templates, lambda functions and permissions
+https://github.com/awslabs/serverless-application-model/blob/master/docs/policy_templates.rst
+
+```
+https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#properties
+
+Role	    string	ARN of an IAM role to use as this function's execution role. If omitted, a default role is created for this function.
+Policies	string | List of string | IAM policy document object | List of IAM policy document object | List of SAM Policy Templates	Names of AWS managed IAM policies or IAM policy documents or SAM Policy Templates that this function needs, which should be appended to the default role for this function. If the Role property is set, this property has no meaning.
+```
+
+
+### Policies:
+
+This property grants permission to your Lambda function to publish messages to the HelloWorldTopic SNS topic.
+
+This is necessary, because by default Lambda functions are assigned an IAM role that has no permissions at all (except to write to the CloudWatch logs). That means that for every AWS service that your Lambda function must access, you have to add the appropriate permissions to the Lambda function’s role.
+
+In our case, we grant the required permissions to the function by using a SAM feature called policy templates. Policy templates are a set of predefined IAM policies that can be referenced by a simple string.
+
+In our template we use the SNSPublishMessagePolicy policy template which matches our requirement of granting permission to publish messages to a specific SNS topic. This policy template requires a single argument named TopicName which must be the name of the SNS topic for which publishing permission should be granted. The specifications of all available SAM policy templates are available in this file.
+
+Note that we use another CloudFormation intrinsic function GetAtt to retrieve the name of the HelloWorldTopic SNS topic. This is necessary, because this name is automatically generated and not known at the time of the initial deployment.
+

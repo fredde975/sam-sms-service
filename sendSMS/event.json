@@ -1,5 +1,5 @@
 {
-  "Comment": "Test my Iterator function",
+  "Comment": "Test my SMS function",
   "receiver": "+46739888132",
   "sender": "MySMS",
   "message": "Hello there! How are you doing?",
