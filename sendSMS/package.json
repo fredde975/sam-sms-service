@@ -1,0 +1,7 @@
+{
+  "name": "calculateDates",
+  "version": "1.0.0",
+  "description": "Sends an SMS to a receiver",
+  "main": "index.js",
+  "author": "Fredrik Thernelius"
+}

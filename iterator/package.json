@@ -1,0 +1,7 @@
+{
+  "name": "calculateDates",
+  "version": "1.0.0",
+  "description": "Iterates the index with a step and sets continue to true or false",
+  "main": "index.js",
+  "author": "Fredrik Thernelius"
+}

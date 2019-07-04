@@ -1,0 +1,10 @@
+{
+  "name": "calculateDates",
+  "version": "1.0.0",
+  "description": "Calculates three dates between now and endDate",
+  "main": "index.js",
+  "author": "Fredrik Thernelius",
+  "dependencies": {
+    "moment": "2.24.0"
+  }
+}

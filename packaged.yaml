@@ -1,0 +1,127 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'sam-sms-service
+
+  Sample SAM Template for sam-sms-service
+
+  '
+Globals:
+  Function:
+    Timeout: 10
+Outputs:
+  CalculateDatesFunction:
+    Description: CalculateDatesFunction ARN
+    Value:
+      Fn::GetAtt:
+      - CalculateDatesFunction
+      - Arn
+  CalculateDatesFunctionIamRole:
+    Description: Implicit IAM Role created for CalculateDatesFunction
+    Value:
+      Fn::GetAtt:
+      - CalculateDatesFunction
+      - Arn
+  IteratorFunction:
+    Description: IteratorFunction ARN
+    Value:
+      Fn::GetAtt:
+      - IteratorFunction
+      - Arn
+  IteratorFunctionIamRole:
+    Description: Implicit IAM Role created for IteratorFunction
+    Value:
+      Fn::GetAtt:
+      - IteratorFunction
+      - Arn
+  SendSMSFunction:
+    Description: SendSMSFunction ARN
+    Value:
+      Fn::GetAtt:
+      - SendSMSFunction
+      - Arn
+  SendSMSFunctionIamRole:
+    Description: Implicit IAM Role created for SendSMSFunction
+    Value:
+      Fn::GetAtt:
+      - SendSMSFunction
+      - Arn
+Resources:
+  CalculateDatesFunction:
+    Properties:
+      CodeUri: s3://fredrik-sms-service/6a02127a645e7c6f453452b58426b307
+      Handler: index.calculateDates
+      Runtime: nodejs8.10
+    Type: AWS::Serverless::Function
+  IteratorFunction:
+    Properties:
+      CodeUri: s3://fredrik-sms-service/b7eed1e9449f1b31c69c717864e49166
+      Handler: index.iterator
+      Runtime: nodejs8.10
+    Type: AWS::Serverless::Function
+  SMSStateMachine:
+    Properties:
+      DefinitionString:
+        Fn::Sub:
+        - "{\n  \"Comment\": \"State machine to send a number of text messages over\
+          \ a period of time\",\n  \"StartAt\": \"ConfigureCount\",\n  \"States\"\
+          : {\n\n    \"ConfigureCount\": {\n      \"Type\": \"Pass\",\n      \"Result\"\
+          : {\n        \"count\": 3,\n        \"index\": 0,\n        \"step\": 1\n\
+          \      },\n      \"ResultPath\": \"$.iterator\",\n      \"Next\": \"CaclulateDates\"\
+          \n    },\n\n    \"CaclulateDates\":{\n      \"Type\": \"Task\",\n      \"\
+          Resource\": \"${calculateDatesArn}\",\n      \"ResultPath\": \"$.dates\"\
+          ,\n      \"Next\": \"Iterator\"\n    },\n\n    \"Iterator\": {\n      \"\
+          Type\": \"Task\",\n      \"Resource\": \"${iteratorArn}\",\n      \"ResultPath\"\
+          : \"$.iterator\",\n      \"Next\": \"WaitUntilDate\"\n    },\n\n    \"WaitUntilDate\"\
+          : {\n      \"Type\": \"Wait\",\n      \"TimestampPath\": \"$.iterator.nextDate\"\
+          ,\n      \"Next\": \"SendSMS\"\n    },\n\n    \"SendSMS\": {\n      \"Comment\"\
+          : \"Send an SMS\",\n      \"Type\": \"Task\",\n      \"Resource\": \"${sendSMSArn}\"\
+          ,\n      \"ResultPath\": \"$.result\",\n      \"Next\": \"HasSent3SMS\"\n\
+          \    },\n\n    \"HasSent3SMS\": {\n      \"Type\": \"Choice\",\n      \"\
+          Choices\": [\n        {\n          \"Variable\": \"$.iterator.continue\"\
+          ,\n          \"BooleanEquals\": true,\n          \"Next\": \"Iterator\"\n\
+          \        }\n      ],\n      \"Default\": \"Done\"\n    },\n\n    \"Done\"\
+          : {\n      \"Type\": \"Pass\",\n      \"End\": true\n\n    }\n  }\n}"
+        - calculateDatesArn:
+            Fn::GetAtt:
+            - CalculateDatesFunction
+            - Arn
+          iteratorArn:
+            Fn::GetAtt:
+            - IteratorFunction
+            - Arn
+          sendSMSArn:
+            Fn::GetAtt:
+            - SendSMSFunction
+            - Arn
+      RoleArn:
+        Fn::GetAtt:
+        - StatesExecutionRole
+        - Arn
+    Type: AWS::StepFunctions::StateMachine
+  SendSMSFunction:
+    Properties:
+      CodeUri: s3://fredrik-sms-service/3c7b3409d500332df3bf2217904adbcf
+      Handler: index.sendSMS
+      Runtime: nodejs8.10
+    Type: AWS::Serverless::Function
+  StatesExecutionRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action: sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - Fn::Sub: states.${AWS::Region}.amazonaws.com
+        Version: '2012-10-17'
+      Path: /
+      Policies:
+      - PolicyDocument:
+          Statement:
+          - Action:
+            - lambda:InvokeFunction
+            Effect: Allow
+            Resource: '*'
+          Version: '2012-10-17'
+        PolicyName: StatesExecutionPolicy
+    Type: AWS::IAM::Role
+Transform: AWS::Serverless-2016-10-31

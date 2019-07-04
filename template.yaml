@@ -1,0 +1,156 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  sam-sms-service
+
+  Sample SAM Template for sam-sms-service
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 10
+
+
+Resources:
+
+  CalculateDatesFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: calculateDates/           #point to the code in the project folder structure
+      Handler: index.calculateDates
+      Runtime: nodejs8.10
+
+  IteratorFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: iterator/           #point to the code in the project folder structure
+      Handler: index.iterator
+      Runtime: nodejs8.10
+
+  SendSMSFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: sendSMS/           #point to the code in the project folder structure
+      Handler: index.sendSMS
+      Runtime: nodejs8.10
+
+  StatesExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - !Sub states.${AWS::Region}.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: StatesExecutionPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource: "*"
+  SMSStateMachine:
+    Type: "AWS::StepFunctions::StateMachine"
+    Properties:
+      DefinitionString:
+        !Sub
+        - |-
+          {
+            "Comment": "State machine to send a number of text messages over a period of time",
+            "StartAt": "ConfigureCount",
+            "States": {
+
+              "ConfigureCount": {
+                "Type": "Pass",
+                "Result": {
+                  "count": 3,
+                  "index": 0,
+                  "step": 1
+                },
+                "ResultPath": "$.iterator",
+                "Next": "CaclulateDates"
+              },
+
+              "CaclulateDates":{
+                "Type": "Task",
+                "Resource": "${calculateDatesArn}",
+                "ResultPath": "$.dates",
+                "Next": "Iterator"
+              },
+
+              "Iterator": {
+                "Type": "Task",
+                "Resource": "${iteratorArn}",
+                "ResultPath": "$.iterator",
+                "Next": "WaitUntilDate"
+              },
+
+              "WaitUntilDate": {
+                "Type": "Wait",
+                "TimestampPath": "$.iterator.nextDate",
+                "Next": "SendSMS"
+              },
+
+              "SendSMS": {
+                "Comment": "Send an SMS",
+                "Type": "Task",
+                "Resource": "${sendSMSArn}",
+                "ResultPath": "$.result",
+                "Next": "HasSent3SMS"
+              },
+
+              "HasSent3SMS": {
+                "Type": "Choice",
+                "Choices": [
+                  {
+                    "Variable": "$.iterator.continue",
+                    "BooleanEquals": true,
+                    "Next": "Iterator"
+                  }
+                ],
+                "Default": "Done"
+              },
+
+              "Done": {
+                "Type": "Pass",
+                "End": true
+
+              }
+            }
+          }
+        - {calculateDatesArn: !GetAtt [ CalculateDatesFunction, Arn ],
+           iteratorArn: !GetAtt [ IteratorFunction, Arn ],
+           sendSMSArn: !GetAtt [ SendSMSFunction, Arn ]}
+      RoleArn: !GetAtt [ StatesExecutionRole, Arn ]
+
+Outputs:
+
+  CalculateDatesFunction:
+    Description: "CalculateDatesFunction ARN"
+    Value: !GetAtt CalculateDatesFunction.Arn
+
+  CalculateDatesFunctionIamRole:
+    Description: "Implicit IAM Role created for CalculateDatesFunction"
+    Value: !GetAtt CalculateDatesFunction.Arn
+
+  IteratorFunction:
+    Description: "IteratorFunction ARN"
+    Value: !GetAtt IteratorFunction.Arn
+
+  IteratorFunctionIamRole:
+    Description: "Implicit IAM Role created for IteratorFunction"
+    Value: !GetAtt IteratorFunction.Arn
+
+  SendSMSFunction:
+    Description: "SendSMSFunction ARN"
+    Value: !GetAtt SendSMSFunction.Arn
+
+  SendSMSFunctionIamRole:
+    Description: "Implicit IAM Role created for SendSMSFunction"
+    Value: !GetAtt SendSMSFunction.Arn
