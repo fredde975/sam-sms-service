@@ -2,7 +2,6 @@
 
 article about SAM: https://alexharv074.github.io/2019/03/02/introduction-to-sam-part-ii-template-and-architecture.html#the-default-role
 
-
 This is a sample template for AWS Serverless Application - Below is a brief explanation of what we have generated for you:
 
 ```bash
@@ -20,6 +19,151 @@ This is a sample template for AWS Serverless Application - Below is a brief expl
 │           └── helloworld
 │               └── AppTest.java
 └── template.yaml
+```
+
+##Development information
+
+**validate sam template:** `>sam validate`
+
+**start local apigw:** `>sam local start-api`
+
+**start local lambdas:** `>sam local start-lambda`
+
+**test a local lambda:** 
+```
+>sam local invoke "SendSMSFunction"  -e sendSMS/event.json
+
+209-07-05 09:02:37 Found credentials in shared credentials file: ~/.aws/credentials
+2019-07-05 09:02:38 Invoking index.sendSMS (nodejs8.10)
+
+Fetching lambci/lambda:nodejs8.10 Docker container image......
+2019-07-05 09:02:40 Mounting /Users/fredrik/git/sam-sms-project/.aws-sam/build/SendSMSFunction as /var/task:ro inside runtime container
+START RequestId: 8d7a6ee5-13e9-136e-775a-e7784f592c04 Version: $LATEST
+2019-07-05T07:02:42.723Z        8d7a6ee5-13e9-136e-775a-e7784f592c04    Sending message Hello there! How are you doing? to receiver +46739888132
+2019-07-05T07:02:48.212Z        8d7a6ee5-13e9-136e-775a-e7784f592c04    Sent message to +46739888132
+END RequestId: 8d7a6ee5-13e9-136e-775a-e7784f592c04
+REPORT RequestId: 8d7a6ee5-13e9-136e-775a-e7784f592c04  Duration: 5640.77 ms    Billed Duration: 5700 ms        Memory Size: 128 MB     Max Memory Used: 42 MB  
+
+{"ResponseMetadata":{"RequestId":"bd6346ed-b105-526e-a5c8-1375495086bf"},"MessageId":"8409fdd2-15c7-54d4-a9c6-a84aed922005"}
+ 
+```
+
+**Invoke a lambda remote (you need all the paramaters to invoke!):** 
+```
+>aws lambda invoke --function-name Iterator  --invocation-type Event --profile fredrikDeveloper2 --region us-east-1 outfile.txt --payload '{"count": 3, "index": 0, "step": 1}'
+
+>aws lambda invoke --function-name aws-serverless-application3-SendSMSFunction-OZU8VOFW6HCD  --invocation-type Event --profile fredrikDeveloper2 --region us-east-1 outfile.txt --payload '{ "receiver": "+46739888132", "sender": "MySMS",  "message": "Hello there! How are you doing?", "endDate": "2019-07-01T13:13:00Z"}'
+```
+
+
+## lambda integration vs. proxy integration
+When using SAM to generate an API for my function I always get "proxy integration". There does not seem to be a way to get "lambda integration" with SAM.
+
+The difference with these when it comes to the function is how I can get the data from the input.
+
+**with lamda integration**
+```
+{ Comment: 'Test my SMS function',
+receiver: '+46739888132',
+sender: 'MySMS',
+message: 'Hello there! How are you doing?',
+endDate: '2019-07-01T13:13:00Z' }
+```
+ 
+**with proxy integration**
+
+In order to read the body you will need get that part of the input:
+
+```
+let receiver = 'receiver';
+
+    if (event.body) {
+        let body = JSON.parse(event.body)
+        if (body.receiver) 
+            receiver = body.receiver;
+    }
+```
+
+The whole input for lambda proxy:
+```
+resource: '/send-sms',
+path: '/send-sms',
+httpMethod: 'POST',
+headers: 
+{ Accept: '*/*',
+'Accept-Encoding': 'gzip, deflate',
+'cache-control': 'no-cache',
+'CloudFront-Forwarded-Proto': 'https',
+'CloudFront-Is-Desktop-Viewer': 'true',
+'CloudFront-Is-Mobile-Viewer': 'false',
+'CloudFront-Is-SmartTV-Viewer': 'false',
+'CloudFront-Is-Tablet-Viewer': 'false',
+'CloudFront-Viewer-Country': 'SE',
+'Content-Type': 'application/json',
+Host: 'pymzukyr67.execute-api.us-east-1.amazonaws.com',
+'Postman-Token': 'bf8e016b-f1f6-42c7-a94e-057cff983dc5',
+'User-Agent': 'PostmanRuntime/7.1.1',
+Via: '1.1 b76b599f5a094e362930b9cd4c9288fe.cloudfront.net (CloudFront)',
+'X-Amz-Cf-Id': 'lzd1NH2hTfjN8YlC_f53hxON4ZznBZMrVviwjnoxI63s2FVwXKCT_w==',
+'X-Amzn-Trace-Id': 'Root=1-5d1f08aa-26f9a09854fa4a98710e9958',
+'X-Forwarded-For': '81.170.220.10, 52.46.41.81',
+'X-Forwarded-Port': '443',
+'X-Forwarded-Proto': 'https' },
+multiValueHeaders: 
+{ Accept: [ '*/*' ],
+'Accept-Encoding': [ 'gzip, deflate' ],
+'cache-control': [ 'no-cache' ],
+'CloudFront-Forwarded-Proto': [ 'https' ],
+'CloudFront-Is-Desktop-Viewer': [ 'true' ],
+'CloudFront-Is-Mobile-Viewer': [ 'false' ],
+'CloudFront-Is-SmartTV-Viewer': [ 'false' ],
+'CloudFront-Is-Tablet-Viewer': [ 'false' ],
+'CloudFront-Viewer-Country': [ 'SE' ],
+'Content-Type': [ 'application/json' ],
+Host: [ 'pymzukyr67.execute-api.us-east-1.amazonaws.com' ],
+'Postman-Token': [ 'bf8e016b-f1f6-42c7-a94e-057cff983dc5' ],
+'User-Agent': [ 'PostmanRuntime/7.1.1' ],
+Via: 
+[ '1.1 b76b599f5a094e362930b9cd4c9288fe.cloudfront.net (CloudFront)' ],
+'X-Amz-Cf-Id': [ 'lzd1NH2hTfjN8YlC_f53hxON4ZznBZMrVviwjnoxI63s2FVwXKCT_w==' ],
+'X-Amzn-Trace-Id': [ 'Root=1-5d1f08aa-26f9a09854fa4a98710e9958' ],
+'X-Forwarded-For': [ '81.170.220.10, 52.46.41.81' ],
+'X-Forwarded-Port': [ '443' ],
+'X-Forwarded-Proto': [ 'https' ] },
+queryStringParameters: null,
+multiValueQueryStringParameters: null,
+pathParameters: null,
+stageVariables: null,
+requestContext: 
+{ resourceId: '5la8rr',
+resourcePath: '/send-sms',
+httpMethod: 'POST',
+extendedRequestId: 'cV5KmGYxIAMFy3g=',
+requestTime: '05/Jul/2019:08:22:02 +0000',
+path: '/Prod/send-sms',
+accountId: '487526570401',
+protocol: 'HTTP/1.1',
+stage: 'Prod',
+domainPrefix: 'pymzukyr67',
+requestTimeEpoch: 1562314922220,
+requestId: 'f72a9c69-9efd-11e9-b78c-8d1017039c72',
+identity: 
+{ cognitoIdentityPoolId: null,
+accountId: null,
+cognitoIdentityId: null,
+caller: null,
+sourceIp: '81.170.220.10',
+principalOrgId: null,
+accessKey: null,
+cognitoAuthenticationType: null,
+cognitoAuthenticationProvider: null,
+userArn: null,
+userAgent: 'PostmanRuntime/7.1.1',
+user: null },
+domainName: 'pymzukyr67.execute-api.us-east-1.amazonaws.com',
+apiId: 'pymzukyr67' },
+body: '{\n "Comment": "Test my SMS function",\n "receiver": "+46739888132",\n "sender": "MySMS",\n "message": "Hello there! How are you doing?",\n "endDate": "2019-07-01T13:13:00Z",\n}',
+isBase64Encoded: false }
 ```
 
 ## Requirements
@@ -181,7 +325,26 @@ https://github.com/awslabs/serverless-application-model/blob/master/docs/policy_
           Runtime: nodejs8.10
     ```
 
-Another way I got it working:
+Another way is to use managed policies:
+
+```
+  SendSMSFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: sendSMS/           #point to the code in the project folder structure
+      Handler: index.sendSMS
+      Runtime: nodejs8.10
+      Events:
+        HelloWorld:
+          Type: Api
+          Properties:
+            Path: /send-sms
+            Method: post
+      Policies: AmazonSNSFullAccess        <------- set the policy here
+```
+
+
+Yet another way I got it working:
 
 1. This time I managed to write an inline policy with the permissions. A drawback with inline policy is that when you look in the Aws Console then you don't see what the permissions are.
 

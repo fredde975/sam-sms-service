@@ -12,7 +12,7 @@ Globals:
 
 
 Resources:
-# A LambdaExecutionRole can be used when you need to set permissions for your lambdas. The lambda functions get a default rolt created for them which lets them log to cloudwatch.
+# My LambdaExecutionRole can be used when you need to set permissions for your lambdas. The lambda functions get a default rolt created for them which lets them log to cloudwatch.
 #
 #  LambdaExecutionRole:
 #    Type: "AWS::IAM::Role"
@@ -49,13 +49,20 @@ Resources:
       CodeUri: sendSMS/           #point to the code in the project folder structure
       Handler: index.sendSMS
       Runtime: nodejs8.10
-      Policies:
-        - Statement:
-          - Sid: AmazonSNSFullAccess   # this is just a name you select on your own
-            Effect: Allow
-            Action:
-              - sns:*
-            Resource: '*'
+      Events:
+        HelloWorld:
+          Type: Api
+          Properties:
+            Path: /send-sms
+            Method: post
+      Policies: AmazonSNSFullAccess
+#      Policies:
+#        - Statement:
+#          - Sid: AmazonSNSFullAccess   # this is just a name you select on your own
+#            Effect: Allow
+#            Action:
+#              - sns:*
+#            Resource: '*'
 
   StatesExecutionRole:
     Type: "AWS::IAM::Role"

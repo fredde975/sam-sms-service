@@ -3,13 +3,15 @@ const sns = new AWS.SNS();
 
 exports.sendSMS = function (event, context, callback) {
 
+    console.log("input: ", event);
+
     let receiver = event['receiver'];
     let sender = event['sender'];
     let message = event['message'];
 
     let isPromotional = true;
 
-    console.log("Sending message", message, "to receiver", receiver);
+    console.log("Sending message:", message, " to receiver:", receiver);
 
     sns.publish({
         Message: message,
